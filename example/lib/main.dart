@@ -67,8 +67,26 @@ class _EditorDemoPageState extends State<EditorDemoPage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme =
-        _isDarkTheme ? RichEditorTheme.dark() : RichEditorTheme.light();
+    final theme = _isDarkTheme ? RichEditorTheme.dark() : RichEditorTheme.light();
+
+    // Custom toolbar theme built in the example app — demonstrates the toolbar
+    // slot pattern: consumers control styling just like Clear/Set HTML buttons.
+    final toolbarTheme = _isDarkTheme
+        ? RichEditorTheme.dark().copyWith(
+            toolbarColor: const Color(0xFF1A237E),
+            activeIconColor: Colors.amber,
+          )
+        : RichEditorTheme.light().copyWith(
+            toolbarColor: const Color(0xFFE8EAF6),
+            activeIconColor: Colors.indigo,
+            activeBackgroundColor: Colors.indigo.withValues(alpha: 0.15),
+          );
+
+    final myToolbar = RichEditorToolbar(
+      controller: _controller,
+      theme: toolbarTheme,
+      config: ToolbarConfig.standard,
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -124,11 +142,11 @@ class _EditorDemoPageState extends State<EditorDemoPage> {
               child: RichTextEditor(
                 controller: _controller,
                 theme: theme,
+                toolbar: myToolbar,
                 toolbarConfig: ToolbarConfig.standard,
                 editorHeight: double.infinity,
                 onChanged: (content) {
-                  debugPrint(
-                      'Content changed: ${content.html.length} chars HTML, '
+                  debugPrint('Content changed: ${content.html.length} chars HTML, '
                       '${content.plainText.length} chars plain');
                 },
                 onFocus: () => debugPrint('Editor focused'),

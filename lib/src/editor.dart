@@ -7,8 +7,7 @@ import 'toolbar.dart';
 import 'toolbar_config.dart';
 
 // Conditional import: picks the right platform files
-import 'platform/platform_editor.dart'
-    if (dart.library.html) 'platform/platform_editor_web.dart';
+import 'platform/platform_editor.dart' if (dart.library.html) 'platform/platform_editor_web.dart';
 
 /// A rich text editor widget with a customizable toolbar.
 ///
@@ -57,8 +56,12 @@ class RichTextEditor extends StatefulWidget {
   final bool toolbarAtTop;
 
   /// Custom link dialog builder. If null, a default Material dialog is shown.
-  final Future<LinkDialogResult?> Function(
-      BuildContext context, String? currentUrl)? onLinkDialog;
+  final Future<LinkDialogResult?> Function(BuildContext context, String? currentUrl)? onLinkDialog;
+
+  /// Optional custom toolbar widget. When provided, this widget is rendered
+  /// in the toolbar position instead of the default [RichEditorToolbar].
+  /// Set [showToolbar] to false to hide the toolbar entirely.
+  final Widget? toolbar;
 
   const RichTextEditor({
     super.key,
@@ -72,6 +75,7 @@ class RichTextEditor extends StatefulWidget {
     this.showToolbar = true,
     this.toolbarAtTop = true,
     this.onLinkDialog,
+    this.toolbar,
   });
 
   @override
@@ -152,8 +156,7 @@ class _RichTextEditorState extends State<RichTextEditor> {
     });
   }
 
-  Future<LinkDialogResult?> _showDefaultLinkDialog(
-      BuildContext context, String? currentUrl) async {
+  Future<LinkDialogResult?> _showDefaultLinkDialog(BuildContext context, String? currentUrl) async {
     final urlController = TextEditingController(text: currentUrl ?? '');
     final textController = TextEditingController();
 
@@ -192,8 +195,7 @@ class _RichTextEditorState extends State<RichTextEditor> {
                 onPressed: () => Navigator.of(ctx).pop(
                   LinkDialogResult(shouldRemove: true),
                 ),
-                child: const Text('Remove Link',
-                    style: TextStyle(color: Colors.red)),
+                child: const Text('Remove Link', style: TextStyle(color: Colors.red)),
               ),
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(null),
@@ -203,9 +205,7 @@ class _RichTextEditorState extends State<RichTextEditor> {
               onPressed: () => Navigator.of(ctx).pop(
                 LinkDialogResult(
                   url: urlController.text,
-                  text: textController.text.isNotEmpty
-                      ? textController.text
-                      : null,
+                  text: textController.text.isNotEmpty ? textController.text : null,
                 ),
               ),
               child: const Text('Apply'),
@@ -218,26 +218,24 @@ class _RichTextEditorState extends State<RichTextEditor> {
 
   @override
   Widget build(BuildContext context) {
-    final toolbar = widget.showToolbar
-        ? RichEditorToolbar(
-            controller: widget.controller,
-            theme: widget.theme,
-            config: widget.toolbarConfig,
-            onLinkDialog: widget.onLinkDialog,
-          )
-        : null;
+    final toolbar = !widget.showToolbar
+        ? null
+        : widget.toolbar ??
+            RichEditorToolbar(
+              controller: widget.controller,
+              theme: widget.theme,
+              config: widget.toolbarConfig,
+              onLinkDialog: widget.onLinkDialog,
+            );
 
-    final divider = widget.theme.showToolbarDivider && widget.showToolbar
-        ? Divider(height: 1, thickness: 1, color: widget.theme.dividerColor)
-        : null;
+    final divider = widget.theme.showToolbarDivider && widget.showToolbar ? Divider(height: 1, thickness: 1, color: widget.theme.dividerColor) : null;
 
     final editor = _buildPlatformEditor();
 
     return Container(
       decoration: BoxDecoration(
         borderRadius: widget.theme.borderRadius,
-        border: widget.theme.border ??
-            Border.all(color: widget.theme.dividerColor, width: 1),
+        border: widget.theme.border ?? Border.all(color: widget.theme.dividerColor, width: 1),
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(

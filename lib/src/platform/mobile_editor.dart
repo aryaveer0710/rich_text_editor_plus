@@ -47,8 +47,7 @@ class _MobileEditorState extends State<MobileEditor> {
               // Wire up JS evaluation so the controller can call into JS
               widget.controller.evaluateJavascript = (String js) async {
                 try {
-                  final result = await _webViewController
-                      .runJavaScriptReturningResult(js);
+                  final result = await _webViewController.runJavaScriptReturningResult(js);
                   return result.toString();
                 } catch (e) {
                   debugPrint('JS eval error: $e');
@@ -59,8 +58,7 @@ class _MobileEditorState extends State<MobileEditor> {
           },
           // Prevent navigation away from the editor
           onNavigationRequest: (NavigationRequest request) {
-            if (request.url.startsWith('data:') ||
-                request.url == 'about:blank') {
+            if (request.url.startsWith('data:') || request.url == 'about:blank') {
               return NavigationDecision.navigate;
             }
             // External links: prevent navigation.

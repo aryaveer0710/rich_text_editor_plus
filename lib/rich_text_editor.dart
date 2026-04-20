@@ -1,4 +1,3 @@
-
 import 'rich_text_editor_platform_interface.dart';
 
 class RichTextEditor {

@@ -29,8 +29,7 @@ class RichEditorTheme {
     this.activeBackgroundColor = const Color(0xFFE8F0FE),
     this.editorBackground = Colors.white,
     this.editorTextColor = const Color(0xFF202124),
-    this.editorFontFamily =
-        '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    this.editorFontFamily = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
     this.editorFontSize = 16,
     this.editorLineHeight = 1.6,
     this.editorPadding = const EdgeInsets.all(16),
@@ -87,8 +86,7 @@ class RichEditorTheme {
       toolbarColor: toolbarColor ?? this.toolbarColor,
       toolbarIconColor: toolbarIconColor ?? this.toolbarIconColor,
       activeIconColor: activeIconColor ?? this.activeIconColor,
-      activeBackgroundColor:
-          activeBackgroundColor ?? this.activeBackgroundColor,
+      activeBackgroundColor: activeBackgroundColor ?? this.activeBackgroundColor,
       editorBackground: editorBackground ?? this.editorBackground,
       editorTextColor: editorTextColor ?? this.editorTextColor,
       editorFontFamily: editorFontFamily ?? this.editorFontFamily,

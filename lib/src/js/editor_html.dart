@@ -149,7 +149,7 @@ String generateEditorHtml(RichEditorTheme theme) {
     debounceTimer = setTimeout(function() {
       sendToFlutter({
         type: 'contentChanged',
-        html: editor.innerHTML,
+        html: isEditorEffectivelyEmpty() ? '' : editor.innerHTML,
         plainText: getPlainText()
       });
     }, 50);
@@ -220,6 +220,133 @@ String generateEditorHtml(RichEditorTheme theme) {
   }
 
   // -----------------------------------------------------------------------
+  // All inline formatting tags
+  // -----------------------------------------------------------------------
+  var ALL_FORMAT_TAGS = ['b', 'strong', 'i', 'em', 'u', 's', 'strike', 'del'];
+
+  var TAG_MAP = {
+    bold: ['b', 'strong'],
+    italic: ['i', 'em'],
+    underline: ['u'],
+    strikethrough: ['s', 'strike', 'del']
+  };
+
+  // True when there is no content between the given range's start and the end of el.
+  function isCaretAtEndOfElement(range, el) {
+    var endRange = document.createRange();
+    endRange.setStart(range.startContainer, range.startOffset);
+    endRange.setEndAfter(el);
+    return endRange.toString() === '';
+  }
+
+  // True when the element has no rendered text and no embedded media.
+  function isEffectivelyEmptyNode(el) {
+    if (!el || el.nodeType !== Node.ELEMENT_NODE) return false;
+    if (el.textContent.length > 0) return false;
+    return !el.querySelector('img, video, audio, iframe, hr, table');
+  }
+
+  // True when the editor has no rendered text and no embedded media.
+  function isEditorEffectivelyEmpty() {
+    if (editor.innerText.replace(/[\\s\\u200B]/g, '').length > 0) return false;
+    return !editor.querySelector('img, video, audio, iframe, hr, table');
+  }
+
+  // -----------------------------------------------------------------------
+  // Break caret out of only the specific formatting tags being toggled off,
+  // while keeping the caret inside any other active format tags.
+  //
+  // Problem with escaping ALL tags: if you have <b><i><u><s>|</s></u></i></b>
+  // and toggle bold off, the caret lands outside everything. Then toggling italic
+  // off sees queryCommandState('italic')=false and ADDS italic back instead of
+  // removing it — the opposite of what the user wants.
+  //
+  // Fix: escape only the tag(s) matching the toggled command. Collect all other
+  // format tags encountered on the way up (the ones to preserve) and re-wrap the
+  // new caret position in them using a zero-width-space anchor.
+  // -----------------------------------------------------------------------
+  function breakOutOfSpecificFormattingTag(command) {
+    var formatKeyByCommand = { bold: 'bold', italic: 'italic', underline: 'underline', strikeThrough: 'strikethrough' };
+    var formatKey = formatKeyByCommand[command];
+    if (!formatKey) return false;
+
+    var tagsToEscape = TAG_MAP[formatKey]; // e.g. ['b','strong'] for bold
+
+    var sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0 || !sel.isCollapsed) return false;
+
+    var range = sel.getRangeAt(0);
+    var startContainer = range.startContainer;
+    var startOffset = range.startOffset;
+
+    // Only act when caret is at the end of its text node.
+    if (startContainer.nodeType === Node.TEXT_NODE && startOffset !== startContainer.length) {
+      return false;
+    }
+
+    // Walk up collecting: the outermost tag-to-escape and all other format tags
+    // encountered between the caret and that outermost tag (innermost listed first).
+    var outermostToEscape = null;
+    var tagsToPreserve = []; // other format tags inside outermostToEscape, innermost first
+
+    var walker = startContainer.nodeType === Node.TEXT_NODE ? startContainer.parentNode : startContainer;
+    while (walker && walker !== editor) {
+      if (walker.nodeType === Node.ELEMENT_NODE) {
+        var tag = walker.tagName.toLowerCase();
+        if (ALL_FORMAT_TAGS.indexOf(tag) >= 0) {
+          if (!isCaretAtEndOfElement(range, walker)) break;
+          if (tagsToEscape.indexOf(tag) >= 0) {
+            outermostToEscape = walker;
+            // tagsToPreserve collected so far are all inside outermostToEscape — keep them
+          } else {
+            tagsToPreserve.push(tag);
+          }
+        }
+      }
+      walker = walker.parentNode;
+    }
+
+    if (!outermostToEscape) return false;
+
+    var parentOfOutermost = outermostToEscape.parentNode;
+    var indexInParent = Array.prototype.indexOf.call(parentOfOutermost.childNodes, outermostToEscape);
+
+    // Move caret to just after the escaped tag.
+    range.setStartAfter(outermostToEscape);
+    range.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(range);
+
+    // Re-wrap caret in the preserved formats so the user stays inside them.
+    // tagsToPreserve is innermost-first, so build wrappers from inside out.
+    if (tagsToPreserve.length > 0) {
+      var zwsp = document.createTextNode('\u200B');
+      var currentEl = zwsp;
+      for (var i = 0; i < tagsToPreserve.length; i++) {
+        var wrapper = document.createElement(tagsToPreserve[i]);
+        wrapper.appendChild(currentEl);
+        currentEl = wrapper;
+      }
+      range.insertNode(currentEl);
+      range.setStart(zwsp, zwsp.length);
+      range.collapse(true);
+      sel.removeAllRanges();
+      sel.addRange(range);
+    }
+
+    // Remove the escaped tag if it is now empty.
+    if (isEffectivelyEmptyNode(outermostToEscape)) {
+      parentOfOutermost.removeChild(outermostToEscape);
+      range.setStart(parentOfOutermost, indexInParent);
+      range.collapse(true);
+      sel.removeAllRanges();
+      sel.addRange(range);
+    }
+
+    return true;
+  }
+
+  // -----------------------------------------------------------------------
   // Selection style reporting
   // -----------------------------------------------------------------------
   function reportSelectionStyle() {
@@ -276,7 +403,27 @@ String generateEditorHtml(RichEditorTheme theme) {
 
     execCommand: function(command, value) {
       editor.focus();
-      document.execCommand(command, false, value || null);
+
+      var formatKeyByCommand = { bold: 'bold', italic: 'italic', underline: 'underline', strikeThrough: 'strikethrough' };
+      var formatKey = formatKeyByCommand[command];
+      var sel = window.getSelection();
+      var isCollapsed = sel && sel.isCollapsed;
+
+      if (formatKey && isCollapsed && document.queryCommandState(command)) {
+        // Escape only the tag(s) for this specific command, preserving all other
+        // active format tags. See breakOutOfSpecificFormattingTag for full explanation.
+        var brokeOut = breakOutOfSpecificFormattingTag(command);
+        if (!brokeOut) {
+          // No matching formatting ancestor found — fall back to native toggle.
+          document.execCommand(command, false, value || null);
+        } else if (document.queryCommandState(command)) {
+          // Sticky state still lagging after relocation — force it off once more.
+          document.execCommand(command, false, null);
+        }
+      } else {
+        document.execCommand(command, false, value || null);
+      }
+
       reportContent();
       reportSelectionStyle();
     },
@@ -317,7 +464,7 @@ String generateEditorHtml(RichEditorTheme theme) {
     },
 
     getHtml: function() {
-      return editor.innerHTML;
+      return isEditorEffectivelyEmpty() ? '' : editor.innerHTML;
     },
 
     getPlainText: function() {
@@ -366,7 +513,10 @@ String generateEditorHtml(RichEditorTheme theme) {
     isEmpty: function() {
       var text = editor.innerText.trim();
       return text.length === 0 || text === '\\n';
-    }
+    },
+
+    // No-op kept for backwards compatibility with controller.dart callers.
+    setEnforcement: function(state) {}
   };
 
   // -----------------------------------------------------------------------
@@ -415,15 +565,15 @@ String generateEditorHtml(RichEditorTheme theme) {
       switch (e.key.toLowerCase()) {
         case 'b':
           e.preventDefault();
-          window.editorBridge.execCommand('bold');
+          sendToFlutter({ type: 'toolbarToggle', action: 'bold' });
           break;
         case 'i':
           e.preventDefault();
-          window.editorBridge.execCommand('italic');
+          sendToFlutter({ type: 'toolbarToggle', action: 'italic' });
           break;
         case 'u':
           e.preventDefault();
-          window.editorBridge.execCommand('underline');
+          sendToFlutter({ type: 'toolbarToggle', action: 'underline' });
           break;
         case 'k':
           e.preventDefault();
@@ -462,10 +612,5 @@ String _colorToCss(dynamic color) {
 
 /// Escape HTML special characters in a string.
 String _escapeHtml(String text) {
-  return text
-      .replaceAll('&', '&amp;')
-      .replaceAll('<', '&lt;')
-      .replaceAll('>', '&gt;')
-      .replaceAll('"', '&quot;')
-      .replaceAll("'", '&#39;');
+  return text.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;');
 }

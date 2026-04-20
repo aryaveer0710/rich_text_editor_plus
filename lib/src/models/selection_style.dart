@@ -25,6 +25,31 @@ class SelectionStyle {
   /// Whether a link is active at the current selection.
   bool get hasLink => linkUrl != null && linkUrl!.isNotEmpty;
 
+  /// Returns a copy of this style with the given fields replaced.
+  ///
+  /// Used by the controller for optimistic updates — flips a single field without manually copying all eight.
+  SelectionStyle copyWith({
+    bool? isBold,
+    bool? isItalic,
+    bool? isUnderline,
+    bool? isStrikethrough,
+    bool? isOrderedList,
+    bool? isUnorderedList,
+    String? linkUrl,
+    String? alignment,
+  }) {
+    return SelectionStyle(
+      isBold: isBold ?? this.isBold,
+      isItalic: isItalic ?? this.isItalic,
+      isUnderline: isUnderline ?? this.isUnderline,
+      isStrikethrough: isStrikethrough ?? this.isStrikethrough,
+      isOrderedList: isOrderedList ?? this.isOrderedList,
+      isUnorderedList: isUnorderedList ?? this.isUnorderedList,
+      linkUrl: linkUrl ?? this.linkUrl,
+      alignment: alignment ?? this.alignment,
+    );
+  }
+
   /// Default empty style.
   static const SelectionStyle none = SelectionStyle();
 

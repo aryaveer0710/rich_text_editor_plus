@@ -51,6 +51,18 @@ class RichEditorController extends ChangeNotifier {
   /// Queue of commands to execute once JS is ready.
   final List<String> _commandQueue = [];
 
+  /// Millisecond timestamp of the last formatting toggle.
+  ///
+  /// Used by the guard window to determine whether incoming selectionStyle messages should
+  /// be allowed to overwrite the optimistic formatting state set by the toggle.
+  int _lastToggleTimestamp = 0;
+
+  /// Guard window duration in milliseconds.
+  ///
+  /// Incoming selectionStyle messages that arrive within this window preserve the
+  /// optimistic formatting fields set by the most recent toggle.
+  static const int _toggleGuardMs = 200;
+
   /// Function to evaluate JavaScript. Set by the platform editor widget.
   Future<String?> Function(String js)? evaluateJavascript;
 
@@ -80,8 +92,33 @@ class RichEditorController extends ChangeNotifier {
           break;
 
         case 'selectionStyle':
-          _selectionStyle = SelectionStyle.fromJson(data);
+          final now = DateTime.now().millisecondsSinceEpoch;
+          final guarded = now - _lastToggleTimestamp < _toggleGuardMs;
+          if (guarded) {
+            // Guard window is active: preserve the optimistic formatting values set by the
+            // last toggle. Only non-formatting fields (alignment, lists, linkUrl) are updated
+            // from JS, as those are not affected by the browser queryCommandState bug.
+            _selectionStyle = SelectionStyle(
+              isBold: _selectionStyle.isBold,
+              isItalic: _selectionStyle.isItalic,
+              isUnderline: _selectionStyle.isUnderline,
+              isStrikethrough: _selectionStyle.isStrikethrough,
+              isOrderedList: data['orderedList'] == true,
+              isUnorderedList: data['unorderedList'] == true,
+              linkUrl: data['linkUrl'] as String?,
+              alignment: (data['alignment'] as String?) ?? 'left',
+            );
+          } else {
+            _selectionStyle = SelectionStyle.fromJson(data);
+          }
           notifyListeners();
+          break;
+
+        case 'toolbarToggle':
+          // Keyboard shortcut (Ctrl+B/I/U) rerouted from JS so the optimistic
+          // update and guard window apply, matching the toolbar button path.
+          final action = data['action'] as String?;
+          if (action != null) handleToolbarAction(action);
           break;
 
         case 'ready':
@@ -179,9 +216,15 @@ class RichEditorController extends ChangeNotifier {
     _executeJs("window.editorBridge.setAlignment(${jsonEncode(alignment)})");
   }
 
-  /// Clear all content.
+  /// Clear all content and reset all formatting state.
+  ///
+  /// Resetting [_lastToggleTimestamp] ensures no guard window is active after a clear,
+  /// so the toolbar reflects the blank-editor state immediately.
   void clear() {
     _executeJs("window.editorBridge.clear()");
+    _selectionStyle = SelectionStyle.none;
+    _lastToggleTimestamp = 0;
+    notifyListeners();
   }
 
   /// Focus the editor.
@@ -198,20 +241,45 @@ class RichEditorController extends ChangeNotifier {
   // Toolbar action dispatch
   // -----------------------------------------------------------------------
 
+  /// Shared logic for bold / italic / underline / strikethrough toolbar toggles.
+  ///
+  /// Applies an optimistic flip to [_selectionStyle], starts the guard window, tells JS
+  /// to enforce the new value at the cursor (Layer 3), then executes the browser command.
+  void _toggleFormatting(String property, String command) {
+    _selectionStyle = switch (property) {
+      'bold' => _selectionStyle.copyWith(isBold: !_selectionStyle.isBold),
+      'italic' => _selectionStyle.copyWith(isItalic: !_selectionStyle.isItalic),
+      'underline' => _selectionStyle.copyWith(isUnderline: !_selectionStyle.isUnderline),
+      'strikethrough' => _selectionStyle.copyWith(isStrikethrough: !_selectionStyle.isStrikethrough),
+      _ => _selectionStyle,
+    };
+    final desiredValue = switch (property) {
+      'bold' => _selectionStyle.isBold,
+      'italic' => _selectionStyle.isItalic,
+      'underline' => _selectionStyle.isUnderline,
+      'strikethrough' => _selectionStyle.isStrikethrough,
+      _ => false,
+    };
+    _lastToggleTimestamp = DateTime.now().millisecondsSinceEpoch;
+    _executeJs("window.editorBridge.setEnforcement(${jsonEncode({property: desiredValue})})");
+    execCommand(command);
+    notifyListeners();
+  }
+
   /// Handle a toolbar action by name. Maps action names to JS commands.
   void handleToolbarAction(String action) {
     switch (action) {
       case 'bold':
-        execCommand('bold');
+        _toggleFormatting('bold', 'bold');
         break;
       case 'italic':
-        execCommand('italic');
+        _toggleFormatting('italic', 'italic');
         break;
       case 'underline':
-        execCommand('underline');
+        _toggleFormatting('underline', 'underline');
         break;
       case 'strikethrough':
-        execCommand('strikeThrough');
+        _toggleFormatting('strikethrough', 'strikeThrough');
         break;
       case 'orderedList':
         execCommand('insertOrderedList');

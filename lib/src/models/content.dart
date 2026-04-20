@@ -18,6 +18,5 @@ class EditorContent {
   bool get isNotEmpty => !isEmpty;
 
   @override
-  String toString() =>
-      'EditorContent(html: ${html.length} chars, plainText: ${plainText.length} chars)';
+  String toString() => 'EditorContent(html: ${html.length} chars, plainText: ${plainText.length} chars)';
 }

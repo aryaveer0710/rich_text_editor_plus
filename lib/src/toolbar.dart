@@ -17,8 +17,7 @@ class RichEditorToolbar extends StatelessWidget {
   /// Optional custom link dialog builder.
   /// If null, a default Material dialog is used.
   /// Return null from the callback to cancel.
-  final Future<LinkDialogResult?> Function(
-      BuildContext context, String? currentUrl)? onLinkDialog;
+  final Future<LinkDialogResult?> Function(BuildContext context, String? currentUrl)? onLinkDialog;
 
   const RichEditorToolbar({
     super.key,
@@ -180,8 +179,7 @@ class RichEditorToolbar extends StatelessWidget {
   }
 
   /// Built-in Material link dialog.
-  Future<LinkDialogResult?> _showDefaultLinkDialog(
-      BuildContext context, String? currentUrl) async {
+  Future<LinkDialogResult?> _showDefaultLinkDialog(BuildContext context, String? currentUrl) async {
     final urlController = TextEditingController(text: currentUrl ?? '');
     final textController = TextEditingController();
 
@@ -220,8 +218,7 @@ class RichEditorToolbar extends StatelessWidget {
                 onPressed: () => Navigator.of(ctx).pop(
                   LinkDialogResult(shouldRemove: true),
                 ),
-                child: const Text('Remove Link',
-                    style: TextStyle(color: Colors.red)),
+                child: const Text('Remove Link', style: TextStyle(color: Colors.red)),
               ),
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(null),
@@ -231,9 +228,7 @@ class RichEditorToolbar extends StatelessWidget {
               onPressed: () => Navigator.of(ctx).pop(
                 LinkDialogResult(
                   url: urlController.text,
-                  text: textController.text.isNotEmpty
-                      ? textController.text
-                      : null,
+                  text: textController.text.isNotEmpty ? textController.text : null,
                 ),
               ),
               child: const Text('Apply'),
@@ -285,9 +280,7 @@ class _ToolbarButton extends StatelessWidget {
       child: Tooltip(
         message: tooltip,
         child: Material(
-          color: isActive
-              ? (activeBackground ?? activeColor.withValues(alpha: 0.1))
-              : Colors.transparent,
+          color: isActive ? (activeBackground ?? activeColor.withValues(alpha: 0.1)) : Colors.transparent,
           borderRadius: BorderRadius.circular(4),
           child: InkWell(
             borderRadius: BorderRadius.circular(4),
