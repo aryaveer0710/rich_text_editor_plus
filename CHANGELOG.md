@@ -1,3 +1,7 @@
+## 0.1.1
+
+* Updated README with improved documentation.
+
 ## 0.1.0
 
 * Initial release of `rich_text_editor_plus`.
