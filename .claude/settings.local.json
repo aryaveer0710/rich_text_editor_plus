@@ -1,9 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Skill(coder)",
-      "Bash(flutter analyze *)",
-      "Bash(flutter pub *)"
-    ]
-  }
-}

@@ -1,7 +1,7 @@
 name: rich_text_editor_plus
 description: A rich text editor plugin for Flutter with a native Flutter toolbar and browser-based editing. Supports bold, italic, underline, strikethrough, links, ordered/unordered nested lists, alignment, and HTML import/export. Works on Android, iOS, and Web.
 version: 0.1.0
-homepage: https://github.com/your-username/rich_text_editor_plus
+homepage: https://github.com/aryaveer0710/rich_text_editor_plus
 
 environment:
   sdk: '>=3.2.0 <4.0.0'
