@@ -92,9 +92,15 @@ class _WebEditorState extends State<WebEditor> {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: widget.height ?? 300,
-      child: HtmlElementView(viewType: _viewType),
+    return ListenableBuilder(
+      listenable: widget.controller,
+      builder: (context, _) {
+        final height = widget.controller.contentHeight ?? widget.height ?? 300;
+        return SizedBox(
+          height: height,
+          child: HtmlElementView(viewType: _viewType),
+        );
+      },
     );
   }
 }

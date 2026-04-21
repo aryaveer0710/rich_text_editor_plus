@@ -80,9 +80,15 @@ class _MobileEditorState extends State<MobileEditor> {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: widget.height ?? 300,
-      child: WebViewWidget(controller: _webViewController),
+    return ListenableBuilder(
+      listenable: widget.controller,
+      builder: (context, _) {
+        final height = widget.controller.contentHeight ?? widget.height ?? 300;
+        return SizedBox(
+          height: height,
+          child: WebViewWidget(controller: _webViewController),
+        );
+      },
     );
   }
 }

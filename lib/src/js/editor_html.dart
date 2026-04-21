@@ -461,6 +461,7 @@ String generateEditorHtml(RichEditorTheme theme) {
     setHtml: function(html) {
       editor.innerHTML = html;
       reportContent();
+      setTimeout(reportHeight, 100);
     },
 
     getHtml: function() {
@@ -516,8 +517,32 @@ String generateEditorHtml(RichEditorTheme theme) {
     },
 
     // No-op kept for backwards compatibility with controller.dart callers.
-    setEnforcement: function(state) {}
+    setEnforcement: function(state) {},
+
+    setReadOnly: function(readOnly) {
+      editor.contentEditable = readOnly ? 'false' : 'true';
+      editor.style.cursor = readOnly ? 'default' : 'text';
+      editor.style.userSelect = readOnly ? 'text' : 'auto';
+      editor.style.webkitUserSelect = readOnly ? 'text' : 'auto';
+      if (readOnly) {
+        // Let content expand naturally so scrollHeight reflects actual height.
+        document.documentElement.style.height = 'auto';
+        document.documentElement.style.overflow = 'visible';
+        document.body.style.height = 'auto';
+        document.body.style.overflow = 'visible';
+        editor.style.overflowY = 'visible';
+        editor.style.minHeight = 'auto';
+        setTimeout(reportHeight, 100);
+      }
+    }
   };
+
+  // -----------------------------------------------------------------------
+  // Height reporting (used for auto-height read-only viewer)
+  // -----------------------------------------------------------------------
+  function reportHeight() {
+    sendToFlutter({ type: 'heightChanged', height: document.body.scrollHeight });
+  }
 
   // -----------------------------------------------------------------------
   // Event listeners

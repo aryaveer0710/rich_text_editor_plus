@@ -42,6 +42,10 @@ class RichEditorController extends ChangeNotifier {
   bool _isReady = false;
   bool get isReady => _isReady;
 
+  /// Content height reported by JS (used for auto-height read-only viewer).
+  double? _contentHeight;
+  double? get contentHeight => _contentHeight;
+
   /// Callback for content changes.
   ContentChangedCallback? onContentChanged;
 
@@ -69,7 +73,10 @@ class RichEditorController extends ChangeNotifier {
   /// Optional initial HTML content to load when the editor is ready.
   String? initialHtml;
 
-  RichEditorController({this.initialHtml});
+  /// Whether the editor is read-only (non-editable).
+  bool readOnly;
+
+  RichEditorController({this.initialHtml, this.readOnly = false});
 
   // -----------------------------------------------------------------------
   // Handle messages from JS
@@ -126,11 +133,19 @@ class RichEditorController extends ChangeNotifier {
           if (initialHtml != null && initialHtml!.isNotEmpty) {
             _executeJs("window.editorBridge.setHtml(${jsonEncode(initialHtml)})");
           }
+          if (readOnly) {
+            _executeJs("window.editorBridge.setReadOnly(true)");
+          }
           // Flush queued commands
           for (final js in _commandQueue) {
             _executeJs(js);
           }
           _commandQueue.clear();
+          notifyListeners();
+          break;
+
+        case 'heightChanged':
+          _contentHeight = (data['height'] as num?)?.toDouble();
           notifyListeners();
           break;
 
@@ -235,6 +250,12 @@ class RichEditorController extends ChangeNotifier {
   /// Blur the editor.
   void blur() {
     _executeJs("window.editorBridge.blur()");
+  }
+
+  /// Toggle read-only mode at runtime.
+  void setReadOnly(bool value) {
+    readOnly = value;
+    _executeJs("window.editorBridge.setReadOnly(${value ? 'true' : 'false'})");
   }
 
   // -----------------------------------------------------------------------
