@@ -1,4 +1,4 @@
-## 0.1.1
+## 0.1.2
 
 * Updated README with improved documentation.
 

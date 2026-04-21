@@ -2,8 +2,8 @@ name: Publish to pub.dev
 
 on:
   push:
-    branches:
-      - main
+    tags:
+      - 'v*'
 
 jobs:
   publish:
@@ -24,40 +24,14 @@ jobs:
           flutter-version: '3.x'
           channel: stable
 
-      - name: Check if version changed
-        id: version_check
-        run: |
-          CURRENT_VERSION=$(grep '^version:' pubspec.yaml | awk '{print $2}')
-          echo "version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
-
-          # Fetch published versions from pub.dev
-          PUBLISHED=$(curl -s "https://pub.dev/api/packages/rich_text_editor_plus" | python3 -c "
-          import sys, json
-          data = json.load(sys.stdin)
-          versions = [v['version'] for v in data.get('versions', [])]
-          print('\n'.join(versions))
-          " 2>/dev/null || echo "")
-
-          if echo "$PUBLISHED" | grep -qx "$CURRENT_VERSION"; then
-            echo "already_published=true" >> $GITHUB_OUTPUT
-            echo "Version $CURRENT_VERSION is already on pub.dev — skipping publish."
-          else
-            echo "already_published=false" >> $GITHUB_OUTPUT
-            echo "Version $CURRENT_VERSION is new — will publish."
-          fi
-
       - name: Install dependencies
-        if: steps.version_check.outputs.already_published == 'false'
         run: flutter pub get
 
       - name: Run tests
-        if: steps.version_check.outputs.already_published == 'false'
         run: flutter test
 
       - name: Publish (dry run)
-        if: steps.version_check.outputs.already_published == 'false'
         run: dart pub publish --dry-run
 
       - name: Publish to pub.dev
-        if: steps.version_check.outputs.already_published == 'false'
         run: dart pub publish --force
