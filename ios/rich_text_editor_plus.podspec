@@ -4,7 +4,7 @@
 #
 Pod::Spec.new do |s|
   s.name             = 'rich_text_editor_plus'
-  s.version          = '0.1.3'
+  s.version          = '0.1.4'
   s.summary          = 'A rich text editor plugin for Flutter.'
   s.description      = <<-DESC
 A rich text editor plugin for Flutter with a native Flutter toolbar and browser-based editing.

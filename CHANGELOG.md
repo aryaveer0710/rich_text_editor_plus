@@ -1,3 +1,9 @@
+## 0.1.4
+
+* Fixed web iframe pointer-events so Flutter dialogs (e.g. link dialog) correctly receive pointer events when shown on top of the editor.
+* Added `disablePointerEvents()` and `enablePointerEvents()` methods to `RichEditorController` for manual control from custom link dialog callbacks.
+* Renamed iOS podspec to `rich_text_editor_plus.podspec` to match the package name.
+
 ## 0.1.3
 
 * Updated README with improved documentation.
