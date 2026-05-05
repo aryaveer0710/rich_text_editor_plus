@@ -165,6 +165,7 @@ class _EditorDemoPageState extends State<EditorDemoPage> {
     required String content,
     required bool isMono,
   }) {
+    _controller.disablePointerEvents();
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -188,10 +189,11 @@ class _EditorDemoPageState extends State<EditorDemoPage> {
           ),
         ],
       ),
-    );
+    ).then((_) => _controller.enablePointerEvents());
   }
 
   void _showSetHtmlDialog(BuildContext context) {
+    _controller.disablePointerEvents();
     final textController = TextEditingController();
     showDialog(
       context: context,
@@ -219,6 +221,6 @@ class _EditorDemoPageState extends State<EditorDemoPage> {
           ),
         ],
       ),
-    );
+    ).then((_) => _controller.enablePointerEvents());
   }
 }

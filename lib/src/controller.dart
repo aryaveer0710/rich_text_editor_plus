@@ -52,6 +52,20 @@ class RichEditorController extends ChangeNotifier {
   /// Callback when Ctrl+K requests a link dialog.
   LinkRequestCallback? onLinkRequest;
 
+  /// Internal: set by WebEditor on web to toggle the iframe's pointer-events.
+  /// Pass null to unregister.
+  void Function(bool enable)? _pointerEventsCallback;
+
+  void setPointerEventsCallback(void Function(bool enable)? callback) {
+    _pointerEventsCallback = callback;
+  }
+
+  /// Disable pointer events on the editor iframe (call before showing a dialog on web).
+  void disablePointerEvents() => _pointerEventsCallback?.call(false);
+
+  /// Re-enable pointer events on the editor iframe (call after a dialog closes).
+  void enablePointerEvents() => _pointerEventsCallback?.call(true);
+
   /// Queue of commands to execute once JS is ready.
   final List<String> _commandQueue = [];
 

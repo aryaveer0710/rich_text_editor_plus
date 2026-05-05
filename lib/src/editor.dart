@@ -146,7 +146,9 @@ class _RichTextEditorState extends State<RichTextEditor> {
       dialogFuture = _showDefaultLinkDialog(context, currentUrl);
     }
 
+    widget.controller.disablePointerEvents();
     dialogFuture.then((result) {
+      widget.controller.enablePointerEvents();
       if (result == null) return;
       if (result.shouldRemove) {
         widget.controller.removeLink();

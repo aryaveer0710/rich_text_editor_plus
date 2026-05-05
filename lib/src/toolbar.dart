@@ -162,11 +162,16 @@ class RichEditorToolbar extends StatelessWidget {
   Future<void> _handleLinkAction(BuildContext context) async {
     final currentUrl = controller.selectionStyle.linkUrl;
 
+    controller.disablePointerEvents();
     LinkDialogResult? result;
-    if (onLinkDialog != null) {
-      result = await onLinkDialog!(context, currentUrl);
-    } else {
-      result = await _showDefaultLinkDialog(context, currentUrl);
+    try {
+      if (onLinkDialog != null) {
+        result = await onLinkDialog!(context, currentUrl);
+      } else {
+        result = await _showDefaultLinkDialog(context, currentUrl);
+      }
+    } finally {
+      controller.enablePointerEvents();
     }
 
     if (result == null) return;

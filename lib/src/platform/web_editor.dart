@@ -64,6 +64,12 @@ class _WebEditorState extends State<WebEditor> {
         }
       };
 
+      // Allow callers to disable pointer events on the iframe so that Flutter
+      // dialogs rendered on top of it can receive pointer events.
+      widget.controller.setPointerEventsCallback((bool enable) {
+        _iframe?.style.setProperty('pointer-events', enable ? 'auto' : 'none');
+      });
+
       return _iframe!;
     });
   }
@@ -86,6 +92,7 @@ class _WebEditorState extends State<WebEditor> {
 
   @override
   void dispose() {
+    widget.controller.setPointerEventsCallback(null);
     _messageSubscription?.cancel();
     super.dispose();
   }
